@@ -85,10 +85,31 @@ int main(void)
     char *args[MAX_LINE/2 + 1]; /*command line arguments */
     while (1){
         background = 0;
+
+        // Print our shell to the screen and wait for the user input
         printf("myshell: ");
+        fflush(NULL);
+
         /*setup() calls exit() when Control-D is entered */
         setup(inputBuffer, args, &background);
 
+        // Fork a child from parent process
+        pid_t child = fork();
+
+        // Handle problems during fork
+        if (child == -1) {
+            perror("Error occured during forking child.\n");
+            return -1;
+        }
+
+        // Child Code
+        if (child == 0){
+            printf("In child code.\n");
+        }
+            // Parent Code
+        else{
+            printf("In parent code.\n");
+        }
         /** the steps are:
         (1) fork a child process using fork()
         (2) the child process will invoke execv()
