@@ -4,6 +4,10 @@
 
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
 
+void child_process(char *pString[41]);
+
+void parent_process(pid_t child, int background, char *pString[41]);
+
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
 delimiters), and set the args array entries to point to the beginning of what
@@ -105,10 +109,12 @@ int main(void)
         // Child Code
         if (child == 0){
             printf("In child code.\n");
+            child_process(args);
         }
-            // Parent Code
+        // Parent Code
         else{
             printf("In parent code.\n");
+            parent_process(child, background, args);
         }
         /** the steps are:
         (1) fork a child process using fork()
@@ -116,4 +122,12 @@ int main(void)
         (3) if background == 0, the parent will wait,
         otherwise it will invoke the setup() function again. */
     }
+}
+
+void parent_process(pid_t child, int background, char *pString[41]) {
+
+}
+
+void child_process(char *pString[41]) {
+
 }
