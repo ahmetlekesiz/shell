@@ -13,4 +13,8 @@ unistd.h
 -
 errno.h
 -
+stdlib.h
+-
+string.h
+-
 

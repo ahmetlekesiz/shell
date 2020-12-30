@@ -1,12 +1,24 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
+
+typedef struct {
+    pid_t id;
+    struct backgroundProcess *nextBackgroundProcess;
+}backgroundProcess;
 
 void child_process(char *pString[41]);
 
 void parent_process(pid_t child, int background, char *pString[41]);
+
+void fillPath();
+
+
+void executeArgument(char **pString);
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -87,6 +99,10 @@ int main(void)
     char inputBuffer[MAX_LINE]; /*buffer to hold command entered */
     int background; /* equals 1 if a command is followed by '&' */
     char *args[MAX_LINE/2 + 1]; /*command line arguments */
+
+    // Read Path Variables and Fill Path Array
+    fillPath();
+
     while (1){
         background = 0;
 
@@ -124,10 +140,39 @@ int main(void)
     }
 }
 
-void parent_process(pid_t child, int background, char *pString[41]) {
+void fillPath() {
 
+}
+
+void parent_process(pid_t child, int background, char *pString[41]) {
+    if(background == 0){
+        //wait(child);
+    }else{
+
+    }
 }
 
 void child_process(char *pString[41]) {
 
+    // Search PATH Variable and run execute argument
+    executeArgument(pString);
+
+
 }
+
+void executeArgument(char **pString) {
+    const char* string = getenv("PATH");
+    // Split string code taken from https://www.educative.io/edpresso/splitting-a-string-using-strtok-in-c
+    // Extract the first token
+    char * token = strtok(string, ":");
+    char tempToRun[80];
+    // loop through the string to extract all other tokens
+    while( token != NULL ) {
+        strcpy(tempToRun, token);
+        sprintf(tempToRun,"%s/%s",token,pString[0]);
+        execv(tempToRun, pString);
+        strcpy(tempToRun, "");
+        token = strtok(NULL, ":");
+    }
+}
+
