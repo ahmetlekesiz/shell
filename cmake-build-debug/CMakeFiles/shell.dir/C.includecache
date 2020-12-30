@@ -17,4 +17,6 @@ stdlib.h
 -
 string.h
 -
+sys/wait.h
+-
 

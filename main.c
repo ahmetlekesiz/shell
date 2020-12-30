@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
 
@@ -10,6 +11,9 @@ typedef struct {
     pid_t id;
     struct backgroundProcess *nextBackgroundProcess;
 }backgroundProcess;
+
+backgroundProcess *headBackgroundProcess = NULL;
+
 
 void child_process(char *pString[41]);
 
@@ -19,6 +23,10 @@ void fillPath();
 
 
 void executeArgument(char **pString);
+
+void createNewBackgroundProcess(pid_t child);
+
+void addNewBackgroundProcess(backgroundProcess *process);
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -100,6 +108,11 @@ int main(void)
     int background; /* equals 1 if a command is followed by '&' */
     char *args[MAX_LINE/2 + 1]; /*command line arguments */
 
+    // Init head of background process linked list
+    headBackgroundProcess = malloc(sizeof(backgroundProcess));
+    headBackgroundProcess->id = -1;
+    headBackgroundProcess->nextBackgroundProcess = NULL;
+
     // Read Path Variables and Fill Path Array
     fillPath();
 
@@ -113,6 +126,14 @@ int main(void)
         /*setup() calls exit() when Control-D is entered */
         setup(inputBuffer, args, &background);
 
+        int counter = 0;
+        while(args[counter] != NULL){
+            if (!strcmp(args[counter], "&")){
+                args[counter] = "";
+            }
+            counter++;
+        }
+
         // Fork a child from parent process
         pid_t child = fork();
 
@@ -124,12 +145,12 @@ int main(void)
 
         // Child Code
         if (child == 0){
-            printf("In child code.\n");
+            //printf("In child code.\n");
             child_process(args);
         }
         // Parent Code
         else{
-            printf("In parent code.\n");
+            //printf("In parent code.\n");
             parent_process(child, background, args);
         }
         /** the steps are:
@@ -145,18 +166,42 @@ void fillPath() {
 }
 
 void parent_process(pid_t child, int background, char *pString[41]) {
+    // If it is a foreground process, wait for the child.
     if(background == 0){
-        //wait(child);
-    }else{
+        wait(child);
+    }
+    /*
+     * If it is a background process,
+     * create a new struct for the chil process
+     * add the process to the background process linked list
+     *
+    */
+    else{
+        printf("child id    : %ld\n", child);
+        createNewBackgroundProcess(child);
+        waitpid(-1, NULL, WNOHANG);
 
     }
 }
 
-void child_process(char *pString[41]) {
+void createNewBackgroundProcess(pid_t child) {
+    backgroundProcess *newBackgroundProcess = malloc(sizeof (backgroundProcess));
+    newBackgroundProcess->id = child;
+    newBackgroundProcess->nextBackgroundProcess = NULL;
+    addNewBackgroundProcess(newBackgroundProcess);
+}
 
+void addNewBackgroundProcess(backgroundProcess *process) {
+    backgroundProcess *iter = headBackgroundProcess;
+    while (iter->nextBackgroundProcess != NULL){
+        iter = iter->nextBackgroundProcess;
+    }
+    iter->nextBackgroundProcess = process;
+}
+
+void child_process(char *pString[41]) {
     // Search PATH Variable and run execute argument
     executeArgument(pString);
-
 
 }
 
