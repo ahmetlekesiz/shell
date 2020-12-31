@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <signal.h>
 
+#define MAX_PRESSES 5
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
 
 typedef struct {
@@ -15,6 +17,8 @@ typedef struct {
 backgroundProcess *headRunningBackgroundProcess = NULL;
 backgroundProcess *headFinishedBackgroundProcess = NULL;
 
+pid_t foregroundProcessID;
+int foreground = 0;
 
 void child_process(char *pString[41]);
 
@@ -33,6 +37,8 @@ void moveBackgroundProcessToFinished(backgroundProcess *process);
 void printProcesses();
 
 void initLinkedList();
+
+void control_z(int signal);
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -70,7 +76,7 @@ void setup(char inputBuffer[], char *args[],int *background)
         exit(-1);           /* terminate with error code of -1 */
     }
 
-    printf(">>%s<<",inputBuffer);
+    //printf(">>%s<<",inputBuffer);
     for (i=0;i<length;i++){ /* examine every character in the inputBuffer */
 
         switch (inputBuffer[i]){
@@ -104,8 +110,10 @@ void setup(char inputBuffer[], char *args[],int *background)
     }    /* end of for */
     args[ct] = NULL; /* just in case the input line was > 80 */
 
+    /*
     for (i = 0; i <= ct; i++)
         printf("args %d = %s\n",i,args[i]);
+    */
 } /* end of setup routine */
 
 int main(void)
@@ -114,17 +122,22 @@ int main(void)
     int background; /* equals 1 if a command is followed by '&' */
     char *args[MAX_LINE/2 + 1]; /*command line arguments */
 
+    // Control<z>
+    signal(SIGTSTP, control_z);
+
+
     // Init head of background process linked list
     initLinkedList();
 
     // Read Path Variables and Fill Path Array
     fillPath();
 
+
     while (1){
         background = 0;
 
         // Print our shell to the screen and wait for the user input
-        printf("myshell: ");
+        printf("myshell> ");
         fflush(NULL);
 
         /*setup() calls exit() when Control-D is entered */
@@ -140,6 +153,13 @@ int main(void)
 
         // Fork a child from parent process
         pid_t child = fork();
+
+
+        // Set ID of Foregorund Process
+        if (background == 0){
+            foregroundProcessID = child;
+            foreground = 1;
+        }
 
         // Handle problems during fork
         if (child == -1) {
@@ -298,4 +318,19 @@ void printProcesses() {
         counter++;
     }*/
 
+}
+
+void control_z(int signal) {
+    // Check if there is any foreground process
+    if(foreground==1){
+        // Kill the process
+        kill(foregroundProcessID, SIGKILL);
+        printf("\nCurrent foreground processes successfully killed.\n");
+        // Update the global variable to check later
+        foreground=0;
+    }else{
+        // Print to user that there is no running foreground process.
+        printf("\nThere is no running foreground process.\nmyshell> ");
+    }
+    fflush(stdout);
 }
