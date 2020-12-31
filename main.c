@@ -162,7 +162,6 @@ int main(void)
         setup(inputBuffer, args, &background);
 
         if(strcmp(args[0], "bookmark") == 0){
-            printf("bookdan önce");
             bookmarkCommands(args);
         }
 
@@ -222,7 +221,7 @@ void initLinkedList() {
     headFinishedBackgroundProcess->nextBackgroundProcess = NULL;
 
     headBookmark = malloc(sizeof (bookmark));
-    headBookmark->command = NULL;
+    headBookmark->command = "start";
     headBookmark->nextBookmark = NULL;
 }
 
@@ -290,7 +289,6 @@ void bookmarkCommands(char **pString) {
     printf("deneme");
     if(pString[1][0] == '"'){
         char* command =prepareCommand(pString);
-        printf("%s", command);
         addNewBookmark(headBookmark, command);
     }
     // Delete a bookmark
@@ -428,8 +426,7 @@ void control_z(int signal) {
 
 void addNewBookmark(bookmark *root, char* command){
     bookmark *newBookmark = malloc(sizeof (bookmark));
-    //TODO char array i ekleyemedi!
-    strcpy(newBookmark->command, command);
+    newBookmark->command = command;
     newBookmark->nextBookmark = NULL;
 
     bookmark *iter = root;
