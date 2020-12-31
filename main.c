@@ -40,6 +40,8 @@ void initLinkedList();
 
 void control_z(int signal);
 
+void checkAndExit();
+
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
 delimiters), and set the args array entries to point to the beginning of what
@@ -151,6 +153,10 @@ int main(void)
             counter++;
         }
 
+        if (strcmp(args[0], "exit") == 0){
+            checkAndExit();
+        }
+
         // Fork a child from parent process
         pid_t child = fork();
 
@@ -249,10 +255,18 @@ void child_process(char *pString[41]) {
     if (strcmp(pString[0], "ps_all") == 0){
         printProcesses();
     }
-
     // Search PATH Variable and run execute argument
     executeArgument(pString);
 
+}
+
+void checkAndExit() {
+    // Check if there is any running background procecess, if any notify the user
+    if (headRunningBackgroundProcess->nextBackgroundProcess != NULL){
+        printf("There is still background processes running!\nPlease terminate all background processes to exit from shell.\n");
+    }else{
+        exit(1);
+    }
 }
 
 void executeArgument(char **pString) {
