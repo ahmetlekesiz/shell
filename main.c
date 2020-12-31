@@ -58,6 +58,8 @@ char *prepareCommand(char **pString);
 
 void addNewBookmark(bookmark *root, char* command);
 
+char *findCommand(int index);
+
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
 delimiters), and set the args array entries to point to the beginning of what
@@ -128,9 +130,11 @@ void setup(char inputBuffer[], char *args[],int *background)
     }    /* end of for */
     args[ct] = NULL; /* just in case the input line was > 80 */
 
-
+    /*
     for (i = 0; i <= ct; i++)
         printf("args %d = %s\n",i,args[i]);
+    */
+
 
 } /* end of setup routine */
 
@@ -162,8 +166,36 @@ int main(void)
         setup(inputBuffer, args, &background);
 
         if(strcmp(args[0], "bookmark") == 0){
-            bookmarkCommands(args);
+            // Run a command
+            if(strcmp(args[1], "-i") == 0){
+                // find command
+                char *command = findCommand(atoi(args[2]));
+                printf("%s\n", command);
+                int len = strlen(command);
+                char subbuff[len-2];
+                memcpy( subbuff, &command[1], len-2 );
+                subbuff[len-1] = '\0';
+                printf("%s\n", subbuff);
+                args[0] = "asd";
+                // fill arguments array with command
+                int init_size = strlen(subbuff);
+                char delim[] = " ";
+
+                char *ptr = strtok(subbuff, delim);
+                int ct = 0;
+                while(ptr != NULL)
+                {
+                    args[ct] = ptr;
+                    printf("%s\n", ptr);
+                    ptr = strtok(NULL, delim);
+                    ct++;
+                }
+                args[ct] = NULL;
+            }else{
+                bookmarkCommands(args);
+            }
         }
+
 
         int counter = 0;
         while(args[counter] != NULL){
@@ -454,4 +486,14 @@ void listBookmarks(bookmark *root){
         counter++;
         iter = iter->nextBookmark;
     }
+}
+
+char *findCommand(int index) {
+    bookmark *iter = headBookmark;
+    int counter = index + 1;
+    while(counter != 0){
+        iter = iter->nextBookmark;
+        counter--;
+    }
+    return iter->command;
 }
