@@ -194,7 +194,6 @@ void parent_process(pid_t child, int background, char *pString[41]) {
         printf("child id    : %ld\n", child);
         createNewBackgroundProcess(child);
         waitpid(-1, NULL, WNOHANG);
-
     }
 }
 
@@ -224,6 +223,11 @@ void moveBackgroundProcessToFinished(backgroundProcess *process) {
 }
 
 void child_process(char *pString[41]) {
+    // Print situtations of processes
+    if (strcmp(pString[0], "ps_all") == 0){
+        printProcesses();
+    }
+
     // Search PATH Variable and run execute argument
     executeArgument(pString);
 
@@ -246,7 +250,39 @@ void executeArgument(char **pString) {
 }
 
 void printProcesses() {
-    // Print running processes
+    // 1. Iterate all processes and move if any of them has finished
+    backgroundProcess *iter = headRunningBackgroundProcess->nextBackgroundProcess;
+    while (iter != NULL){
+        if(waitpid(iter->id, NULL, WNOHANG) != 0) {
+            backgroundProcess *temp = iter;
+            iter = iter->nextBackgroundProcess;
+            moveBackgroundProcessToFinished(temp);
+            continue;
+        }
+        iter = iter->nextBackgroundProcess;
+    }
 
-    // Print finished processes
+    // 2. Print running processes
+    printf("\nRunning\n");
+    iter = headRunningBackgroundProcess->nextBackgroundProcess;
+    if(iter == NULL){
+        printf("There is no running processes!\n");
+    }
+    int counter = 1;
+    while (iter != NULL){
+        printf("%d. (Pid=%d)\n", counter,iter->id);
+        iter = iter->nextBackgroundProcess;
+    }
+
+    // 3. Print finished processes
+    printf("Finished\n");
+    iter = headFinishedBackgroundProcess->nextBackgroundProcess;
+    if(iter == NULL){
+        printf("There is no finished processes!\n");
+    }
+    counter = 1;
+    while (iter != NULL){
+        printf("%d. (Pid=%d)\n", counter,iter->id);
+        iter = iter->nextBackgroundProcess;
+    }
 }
