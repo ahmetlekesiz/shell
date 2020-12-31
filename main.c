@@ -12,7 +12,8 @@ typedef struct {
     struct backgroundProcess *nextBackgroundProcess;
 }backgroundProcess;
 
-backgroundProcess *headBackgroundProcess = NULL;
+backgroundProcess *headRunningBackgroundProcess = NULL;
+backgroundProcess *headFinishedBackgroundProcess = NULL;
 
 
 void child_process(char *pString[41]);
@@ -21,12 +22,17 @@ void parent_process(pid_t child, int background, char *pString[41]);
 
 void fillPath();
 
-
 void executeArgument(char **pString);
 
 void createNewBackgroundProcess(pid_t child);
 
-void addNewBackgroundProcess(backgroundProcess *process);
+void addNewBackgroundProcess(backgroundProcess *root, backgroundProcess *process);
+
+void moveBackgroundProcessToFinished(backgroundProcess *process);
+
+void printProcesses();
+
+void initLinkedList();
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -109,9 +115,7 @@ int main(void)
     char *args[MAX_LINE/2 + 1]; /*command line arguments */
 
     // Init head of background process linked list
-    headBackgroundProcess = malloc(sizeof(backgroundProcess));
-    headBackgroundProcess->id = -1;
-    headBackgroundProcess->nextBackgroundProcess = NULL;
+    initLinkedList();
 
     // Read Path Variables and Fill Path Array
     fillPath();
@@ -161,6 +165,16 @@ int main(void)
     }
 }
 
+void initLinkedList() {
+    headRunningBackgroundProcess = malloc(sizeof(backgroundProcess));
+    headRunningBackgroundProcess->id = -1;
+    headRunningBackgroundProcess->nextBackgroundProcess = NULL;
+
+    headFinishedBackgroundProcess = malloc(sizeof(backgroundProcess));
+    headFinishedBackgroundProcess->id = -1;
+    headFinishedBackgroundProcess->nextBackgroundProcess = NULL;
+}
+
 void fillPath() {
 
 }
@@ -172,7 +186,7 @@ void parent_process(pid_t child, int background, char *pString[41]) {
     }
     /*
      * If it is a background process,
-     * create a new struct for the chil process
+     * create a new struct for the child process
      * add the process to the background process linked list
      *
     */
@@ -188,15 +202,25 @@ void createNewBackgroundProcess(pid_t child) {
     backgroundProcess *newBackgroundProcess = malloc(sizeof (backgroundProcess));
     newBackgroundProcess->id = child;
     newBackgroundProcess->nextBackgroundProcess = NULL;
-    addNewBackgroundProcess(newBackgroundProcess);
+    addNewBackgroundProcess(headRunningBackgroundProcess, newBackgroundProcess);
 }
 
-void addNewBackgroundProcess(backgroundProcess *process) {
-    backgroundProcess *iter = headBackgroundProcess;
+void addNewBackgroundProcess(backgroundProcess *root, backgroundProcess *process) {
+    backgroundProcess *iter = root;
     while (iter->nextBackgroundProcess != NULL){
         iter = iter->nextBackgroundProcess;
     }
     iter->nextBackgroundProcess = process;
+}
+
+void moveBackgroundProcessToFinished(backgroundProcess *process) {
+    // Find the process
+    backgroundProcess *iter = headRunningBackgroundProcess;
+    while (iter->nextBackgroundProcess != process){
+        iter = iter->nextBackgroundProcess;
+    }
+    iter->nextBackgroundProcess = process->nextBackgroundProcess;
+    addNewBackgroundProcess(headFinishedBackgroundProcess, process);
 }
 
 void child_process(char *pString[41]) {
@@ -221,3 +245,8 @@ void executeArgument(char **pString) {
     }
 }
 
+void printProcesses() {
+    // Print running processes
+
+    // Print finished processes
+}
