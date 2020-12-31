@@ -5,9 +5,17 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
-#define MAX_PRESSES 5
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
+
+// INPUT OUTPUT
+#define CREATE_FLAGS (O_WRONLY | O_CREAT | O_APPEND)
+#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+#define CREATE_APPENDFLAGS (O_WRONLY | O_APPEND | O_CREAT )
+
+char INPUT_FILE[50];
+char OUTPUT_FILE[50];
 
 typedef struct {
     pid_t id;
@@ -59,6 +67,18 @@ char *prepareCommand(char **pString);
 void addNewBookmark(bookmark *root, char* command);
 
 char *findCommand(int index);
+
+
+// INPUT OUTPUT METHODS
+int checkInputOutput(char **args);
+
+int truncateOutput();
+
+int appendOutput();
+
+int getInput();
+
+int outputError();
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -147,6 +167,8 @@ int main(void)
     // Control<z>
     signal(SIGTSTP, control_z);
 
+    // Input Output Flags
+    int inputOutputFlag;
 
     // Init head of background process linked list
     initLinkedList();
@@ -180,7 +202,6 @@ int main(void)
                 // fill arguments array with command
                 int init_size = strlen(subbuff);
                 char delim[] = " ";
-
                 char *ptr = strtok(subbuff, delim);
                 int ct = 0;
                 while(ptr != NULL)
@@ -307,6 +328,21 @@ void moveBackgroundProcessToFinished(backgroundProcess *process) {
 }
 
 void child_process(char *pString[41]) {
+    // Output
+    int inputOutputFlag;
+    inputOutputFlag = checkInputOutput(pString);
+    if(inputOutputFlag == 0){
+        truncateOutput();    // >
+    }
+    else if(inputOutputFlag == 1){
+        appendOutput();    // >>
+    }
+    else if(inputOutputFlag == 2){
+        getInput();    // <
+    }
+    else if(inputOutputFlag == 3){
+        outputError();  // Error
+    }
     // Print situtations of processes
     if (strcmp(pString[0], "ps_all") == 0){
         printProcesses();
@@ -314,6 +350,40 @@ void child_process(char *pString[41]) {
     // Search PATH Variable and run execute argument
     executeArgument(pString);
 
+}
+
+int outputError() {
+    int fd;
+    fd = open(OUTPUT_FILE,CREATE_FLAGS,CREATE_MODE);
+    if(fd == -1){
+        perror("Failed to open file");
+        return 1;
+    }
+    if(dup2(fd,STDERR_FILENO) == -1){
+        perror("Failed to redirect standart output");
+        return 1;
+    }
+    if(close(fd) == -1){
+        perror("Failed to close the file");
+        return 1;
+    }
+}
+
+int appendOutput() {
+    int fd;
+    fd = open(OUTPUT_FILE,CREATE_APPENDFLAGS,CREATE_MODE);
+    if(fd == -1){
+        perror("Failed to open file");
+        return 1;
+    }
+    if(dup2(fd,STDOUT_FILENO) == -1){
+        perror("Failed to redirect standart output");
+        return 1;
+    }
+    if(close(fd) == -1){
+        perror("Failed to close the file");
+        return 1;
+    }
 }
 
 void bookmarkCommands(char **pString) {
@@ -496,4 +566,52 @@ char *findCommand(int index) {
         counter--;
     }
     return iter->command;
+}
+
+int truncateOutput() {
+    int fd;
+    fd = open(OUTPUT_FILE, CREATE_FLAGS, CREATE_MODE);
+    if (fd == -1) {
+        perror("Failed to open my.file");
+        return 1;
+    }
+    if (dup2(fd, STDOUT_FILENO) == -1) {
+        perror("Failed to redirect standard output");
+        return 1;
+    }
+    if (close(fd) == -1) {
+        perror("Failed to close the file");
+        return 1;
+    }
+    printf("Output will be seen in my.file\n");
+}
+
+int checkInputOutput(char **args) {
+    int counter = 0;
+    while(args[counter]!=NULL){
+        // OUTPUT
+        if( strcmp(args[counter],">") == 0 ){
+            strcpy(OUTPUT_FILE,args[counter+1]);
+            return 0;
+        }else if( strcmp(args[counter],">>") == 0 ){
+            strcpy(OUTPUT_FILE,args[counter+1]);
+            return 1;
+        }
+
+        // INPUT
+        if( strcmp(args[counter],"<") == 0 ){
+            strcpy(INPUT_FILE , args[counter+1]);
+            return 2;
+        }
+
+        // ERROR
+        if( strcmp(args[counter],"2>") == 0 ){
+            strcpy(OUTPUT_FILE,args[counter+1]);
+            return 3;
+        }
+        args[counter]=NULL;
+        args[counter+1]=NULL;
+        counter++;
+    }
+    return -1;
 }
