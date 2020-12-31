@@ -286,7 +286,6 @@ void child_process(char *pString[41]) {
 
 void bookmarkCommands(char **pString) {
     // Add new bookmark
-    printf("deneme");
     if(pString[1][0] == '"'){
         char* command =prepareCommand(pString);
         addNewBookmark(headBookmark, command);
@@ -451,6 +450,8 @@ void listBookmarks(bookmark *root){
     bookmark *iter = root->nextBookmark;
     int counter = 0;
     while (iter != NULL){
-        printf("%d, %s",counter, iter->command);
+        printf("%d %s\n",counter, iter->command);
+        counter++;
+        iter = iter->nextBookmark;
     }
 }
