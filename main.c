@@ -133,7 +133,7 @@ int main(void)
         int counter = 0;
         while(args[counter] != NULL){
             if (!strcmp(args[counter], "&")){
-                args[counter] = "";
+                args[counter] = NULL;
             }
             counter++;
         }
@@ -218,6 +218,8 @@ void moveBackgroundProcessToFinished(backgroundProcess *process) {
     while (iter->nextBackgroundProcess != process){
         iter = iter->nextBackgroundProcess;
     }
+    // Remove process from the list
+    iter = iter->nextBackgroundProcess;
     iter->nextBackgroundProcess = process->nextBackgroundProcess;
     addNewBackgroundProcess(headFinishedBackgroundProcess, process);
 }
@@ -251,38 +253,49 @@ void executeArgument(char **pString) {
 
 void printProcesses() {
     // 1. Iterate all processes and move if any of them has finished
+
+    /*
     backgroundProcess *iter = headRunningBackgroundProcess->nextBackgroundProcess;
     while (iter != NULL){
-        if(waitpid(iter->id, NULL, WNOHANG) != 0) {
-            backgroundProcess *temp = iter;
-            iter = iter->nextBackgroundProcess;
-            moveBackgroundProcessToFinished(temp);
-            continue;
+        if(kill(iter->id, 0) != -1) {
+            printf("Kapattığım: %d\n", iter->id);
+            //printf("%d\n",waitpid(iter->id, NULL, WNOHANG));
+           // backgroundProcess *temp = iter;
+            //iter = iter->nextBackgroundProcess;
+           // moveBackgroundProcessToFinished(temp);
+            //continue;
         }
         iter = iter->nextBackgroundProcess;
     }
+    */
 
     // 2. Print running processes
     printf("\nRunning\n");
-    iter = headRunningBackgroundProcess->nextBackgroundProcess;
-    if(iter == NULL){
+
+    backgroundProcess *iterRunning = headRunningBackgroundProcess->nextBackgroundProcess;
+
+    if(iterRunning == NULL){
         printf("There is no running processes!\n");
     }
     int counter = 1;
-    while (iter != NULL){
-        printf("%d. (Pid=%d)\n", counter,iter->id);
-        iter = iter->nextBackgroundProcess;
+    while (iterRunning != NULL){
+        printf("%d. (Pid=%d)\n", counter, iterRunning->id);
+        iterRunning = iterRunning->nextBackgroundProcess;
+        counter++;
     }
 
+    /*
     // 3. Print finished processes
     printf("Finished\n");
-    iter = headFinishedBackgroundProcess->nextBackgroundProcess;
-    if(iter == NULL){
+    backgroundProcess *iterFinished = headFinishedBackgroundProcess->nextBackgroundProcess;
+    if(iterFinished == NULL){
         printf("There is no finished processes!\n");
     }
     counter = 1;
-    while (iter != NULL){
-        printf("%d. (Pid=%d)\n", counter,iter->id);
-        iter = iter->nextBackgroundProcess;
-    }
+    while (iterRunning != NULL){
+        printf("%d. (Pid=%d)\n", counter,iterFinished->id);
+        iterFinished = iterFinished->nextBackgroundProcess;
+        counter++;
+    }*/
+
 }
