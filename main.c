@@ -14,8 +14,14 @@ typedef struct {
     struct backgroundProcess *nextBackgroundProcess;
 }backgroundProcess;
 
+typedef struct {
+    char* command;
+    struct bookmark *nextBookmark;
+}bookmark;
+
 backgroundProcess *headRunningBackgroundProcess = NULL;
 backgroundProcess *headFinishedBackgroundProcess = NULL;
+bookmark *headBookmark = NULL;
 
 pid_t foregroundProcessID;
 int foreground = 0;
@@ -41,6 +47,16 @@ void initLinkedList();
 void control_z(int signal);
 
 void checkAndExit();
+
+void bookmarkCommands(char **pString);
+
+void listBookmarks(bookmark *root);
+
+void deleteBookmark(bookmark *root, int index);
+
+char *prepareCommand(char **pString);
+
+void addNewBookmark(bookmark *root, char* command);
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -112,10 +128,10 @@ void setup(char inputBuffer[], char *args[],int *background)
     }    /* end of for */
     args[ct] = NULL; /* just in case the input line was > 80 */
 
-    /*
+
     for (i = 0; i <= ct; i++)
         printf("args %d = %s\n",i,args[i]);
-    */
+
 } /* end of setup routine */
 
 int main(void)
@@ -144,6 +160,11 @@ int main(void)
 
         /*setup() calls exit() when Control-D is entered */
         setup(inputBuffer, args, &background);
+
+        if(strcmp(args[0], "bookmark") == 0){
+            printf("bookdan önce");
+            bookmarkCommands(args);
+        }
 
         int counter = 0;
         while(args[counter] != NULL){
@@ -199,6 +220,10 @@ void initLinkedList() {
     headFinishedBackgroundProcess = malloc(sizeof(backgroundProcess));
     headFinishedBackgroundProcess->id = -1;
     headFinishedBackgroundProcess->nextBackgroundProcess = NULL;
+
+    headBookmark = malloc(sizeof (bookmark));
+    headBookmark->command = NULL;
+    headBookmark->nextBookmark = NULL;
 }
 
 void fillPath() {
@@ -258,6 +283,58 @@ void child_process(char *pString[41]) {
     // Search PATH Variable and run execute argument
     executeArgument(pString);
 
+}
+
+void bookmarkCommands(char **pString) {
+    // Add new bookmark
+    printf("deneme");
+    if(pString[1][0] == '"'){
+        char* command =prepareCommand(pString);
+        printf("%s", command);
+        addNewBookmark(headBookmark, command);
+    }
+    // Delete a bookmark
+    else if(strcmp(pString[1], "-d") == 0){
+        deleteBookmark(headBookmark, atoi(pString[2]));
+    }
+    // List bookmarks
+    else if(strcmp(pString[1], "-l") == 0){
+        listBookmarks(headBookmark);
+    }
+}
+
+char *prepareCommand(char **pString) {
+        int counter = 1;
+        char *command = "";
+        int temp;
+        char* name_with_extension;
+        while(pString[counter] != '\0'){
+            temp = counter + 1;
+            if(pString[temp] != '\0'){
+                name_with_extension = malloc(strlen(command)+1+4);
+                strcpy(name_with_extension, command); /* copy name into the new var */
+                strcat(name_with_extension, pString[counter]); /* add the extension */
+                strcat(name_with_extension, " "); /* add the extension */
+                counter++;
+            } else {
+                strcat(name_with_extension, pString[counter]); /* add the extension */
+                counter++;
+            }
+        }
+    return name_with_extension;
+
+    /*
+    int counter = 1;
+    char *command = "";
+    int temp;
+    while(pString[counter] != NULL){
+        temp = counter + 1;
+        if(pString[temp] != NULL){
+            sprintf(command,"%s ",pString[counter]);
+        } else {
+            sprintf(command,"%s",pString[counter]);
+        }
+    }*/
 }
 
 void checkAndExit() {
@@ -347,4 +424,36 @@ void control_z(int signal) {
         printf("\nThere is no running foreground process.\nmyshell> ");
     }
     fflush(stdout);
+}
+
+void addNewBookmark(bookmark *root, char* command){
+    bookmark *newBookmark = malloc(sizeof (bookmark));
+    //TODO char array i ekleyemedi!
+    strcpy(newBookmark->command, command);
+    newBookmark->nextBookmark = NULL;
+
+    bookmark *iter = root;
+    while (iter->nextBookmark != NULL){
+        iter = iter->nextBookmark;
+    }
+    iter->nextBookmark = newBookmark;
+}
+
+void deleteBookmark(bookmark *root, int index){
+    bookmark *iter = root;
+    while(index != 0){
+        iter = iter->nextBookmark;
+        index--;
+    }
+    bookmark *temp = iter->nextBookmark;
+    iter->nextBookmark = temp->nextBookmark;
+    free(temp);
+}
+
+void listBookmarks(bookmark *root){
+    bookmark *iter = root->nextBookmark;
+    int counter = 0;
+    while (iter != NULL){
+        printf("%d, %s",counter, iter->command);
+    }
 }
